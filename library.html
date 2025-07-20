@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://use.typekit.net/oov2wcw.css">
+    <title>Document</title>
+    <style>
+        body {
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: century-gothic, sans-serif;
+
+        }
+
+        h1 {
+            color: white;
+        }
+
+        .background-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            width: 100%;
+            height: 100%;
+            background-image: url(https://images.nypl.org/index.php?id=1632226&t=w);
+            background-size: cover;
+            background-position: center;
+            filter: contrast(45%);
+        }
+
+        table {
+            margin-bottom: 50px;
+            border-collapse: collapse;
+
+        }
+
+        button:hover {
+            cursor: pointer;
+        }
+
+        td,
+        th {
+            border: 1px solid black;
+            padding: 1rem 1.8rem;
+
+        }
+
+        th {
+            background-color: rgb(93, 89, 78);
+            ;
+            color: rgb(255, 255, 255);
+        }
+
+        #new-book {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 5px;
+            background-color: rgb(93, 89, 78);
+            color: white;
+            font-size: 16px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: auto;
+        }
+
+        .label-input {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            gap: 30px;
+        }
+
+        .dialog-content {
+            width: 300px;
+            padding: 0px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+
+        }
+
+        #buttons {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+        }
+
+        dialog button {
+            padding: 10px;
+            width: 100px;
+            margin: 20px 0;
+            color: white;
+            border: none;
+            border-radius: 8px;
+        }
+
+        dialog::backdrop {
+            background-color: rgba(0, 0, 0, 0.5);
+            /* dark, semi-transparent */
+        }
+
+        #submit-button {
+            background-color: green;
+        }
+
+        #close-button {
+            border: none;
+            background-color: red;
+        }
+
+        input,
+        select {
+            width: 175px;
+            padding: 3px;
+            font-size: 16px;
+            box-sizing: border-box;
+
+        }
+    </style>
+</head>
+
+<body>
+    <div class="background-wrapper"></div>
+    <h1>My Library</h1>
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Author</th>
+            <th>Pages</th>
+            <th>Read</th>
+            <th>Actions</th>
+        </tr>
+    </table>
+
+    <dialog>
+        <div class="dialog-content">
+            <h2>Book Details</h2>
+
+            <form action id="form" method="post">
+                <div class="label-input">
+                    <label for="title">Book Title</label>
+                    <input type="text" id="title" name="title">
+                </div>
+                <div class="label-input">
+                    <label for="author">Author</label>
+                    <input type="text" id="author" name="author">
+                </div>
+                <div class="label-input">
+                    <label for="pages">Pages</label>
+                    <input type="number" id="pages" name="pages">
+                </div>
+                <div class="label-input">
+                    <label for="read">Read</label>
+                    <select id="read" name="read">
+                        <option value="read">Read</option>
+                        <option value="not read yet">Not Read Yet</option>
+                    </select>
+                </div>
+            </form>
+            <div id="buttons">
+                <button type="submit" id="submit-button">Submit</button>
+                <button autofocus id="close-button">Close</button>
+            </div>
+        </div>
+    </dialog>
+    <button id="new-book">New Book</button>
+
+    <script>
+        let myLibrary = [];
+        function Book(title, author, pages, read) {
+            this.id = crypto.randomUUID();
+            this.title = title;
+            this.author = author;
+            this.pages = pages;
+            this.read = read;
+            this.info = function () {
+                console.log(`${title} by ${author}, ${pages} pages, ${read}`)
+            }
+        }
+
+        function addBookToLibrary(title, author, pages, read) {
+            const newBook = new Book(title, author, pages, read);
+            myLibrary.push(newBook);
+        }
+
+        // addBookToLibrary("The Hobbit", "J.R.R Tolkien", 295, "not read yet");
+        // addBookToLibrary("Harry Potter", "J.K. Rowling", 400, "read");
+
+        const table = document.querySelector("table");
+        const firstRow = document.createElement("tr");
+        const firstRowData = document.createElement("td");
+        firstRowData.setAttribute("colspan", "6");
+        firstRowData.innerHTML = "There are no books to show yet...";
+        firstRowData.style.textAlign = "center";
+        firstRowData.style.fontStyle = "italic";
+        firstRowData.style.backgroundColor = "beige";
+        firstRow.appendChild(firstRowData);
+        table.appendChild(firstRow);
+
+        function styleButton(button) {
+            button.style.color = "white";
+            button.style.border = "none";
+            button.style.padding = "8px 20px";
+            button.style.borderRadius = "8px";
+        }
+
+        let editingIndex = null;
+
+        Book.prototype.toggleReadStatus = function () {
+            this.read = this.read === "read" ? "not read yet" : "read";
+        };
+
+        function displayBooks() {
+            for (let i = 0; i < myLibrary.length; i++) {
+                const book = myLibrary[i];
+                const tableRow = document.createElement("tr");
+                const id = document.createElement("td");
+                id.innerHTML = book.id;
+                tableRow.appendChild(id);
+                const title = document.createElement("td");
+                title.innerHTML = book.title;
+                tableRow.appendChild(title);
+                const author = document.createElement("td");
+                author.innerHTML = book.author;
+                tableRow.appendChild(author);
+                const pages = document.createElement("td");
+                pages.innerHTML = book.pages;
+                tableRow.appendChild(pages);
+                const read = document.createElement("td");
+                const readButton = document.createElement("button");
+                styleButton(readButton);
+                if (book.read == "read") {
+                    readButton.style.backgroundColor = "green";
+                } else {
+                    readButton.style.backgroundColor = "grey";
+                }
+                readButton.innerHTML = book.read;
+                readButton.addEventListener("click", () => {
+                    book.toggleReadStatus();
+                    readButton.textContent = book.read;
+                    readButton.style.backgroundColor = book.read === "read" ? "green" : "gray";
+                })
+                read.appendChild(readButton);
+                tableRow.appendChild(read);
+                const actions = document.createElement("td");
+                const editButton = document.createElement("button");
+                const deleteButton = document.createElement("button");
+                const container = document.createElement("div");
+                container.style.display = "flex";
+                container.style.gap = "20px";
+                container.appendChild(editButton);
+                container.appendChild(deleteButton);
+                editButton.innerHTML = "Edit";
+                editButton.style.backgroundColor = "blue";
+                editButton.addEventListener("click", () => {
+                    editingIndex = i;
+                    document.querySelector("#title").value = book.title;
+                    document.querySelector("#author").value = book.author;
+                    document.querySelector("#pages").value = book.pages;
+                    document.querySelector("#read").value = book.read;
+
+                    dialog.showModal();
+                })
+                deleteButton.textContent = "Delete";
+                deleteButton.dataset.bookId = book.id;
+                deleteButton.style.backgroundColor = "red";
+                deleteButton.addEventListener("click", () => {
+                    const bookId = deleteButton.dataset.bookId;
+                    myLibrary = myLibrary.filter(book => book.id !== bookId);
+                    while (table.childElementCount > 1) {
+                        table.removeChild(table.lastElementChild);
+                    }
+                    dialog.close();
+                    displayBooks();
+
+                })
+                actions.appendChild(container);
+                actionButtons = [editButton, deleteButton];
+                actionButtons.forEach(button => {
+                    styleButton(button);
+                })
+                tableRow.appendChild(actions);
+                tableRow.style.backgroundColor = "beige";
+                table.appendChild(tableRow);
+            }
+        }
+
+        const dialog = document.querySelector("dialog");
+        const showButton = document.querySelector("dialog + button");
+        const closeButton = document.querySelector("#close-button");
+        const submitButton = document.querySelector("#submit-button");
+        const buttons = document.querySelectorAll("button");
+
+        showButton.addEventListener("click", () => {
+            dialog.showModal();
+        });
+
+        closeButton.addEventListener("click", () => {
+            dialog.close();
+        });
+
+        submitButton.addEventListener("click", function (event) {
+            event.preventDefault();
+            const title = document.querySelector("#title").value;
+            const author = document.querySelector("#author").value;
+            const pages = document.querySelector("#pages").value;
+            const read = document.querySelector("#read").value;
+
+            if (editingIndex == null) {
+                const newBook = new Book(title, author, pages, read);
+                myLibrary.push(newBook);
+            } else {
+                const book = myLibrary[editingIndex];
+                book.title = title;
+                book.author = author;
+                book.pages = pages;
+                book.read = read;
+            }
+            editingIndex = null;
+            document.querySelector("#form").reset();
+            while (table.childElementCount > 1) {
+                table.removeChild(table.lastElementChild);
+            }
+            dialog.close();
+            displayBooks();
+
+        })
+    </script>
+</body>
+
+</html>
