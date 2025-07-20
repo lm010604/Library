@@ -178,166 +178,177 @@
     <button id="new-book">New Book</button>
 
     <script>
-        let myLibrary = [];
-        function Book(title, author, pages, read) {
-            this.id = crypto.randomUUID();
-            this.title = title;
-            this.author = author;
-            this.pages = pages;
-            this.read = read;
-            this.info = function () {
-                console.log(`${title} by ${author}, ${pages} pages, ${read}`)
+        class Book {
+            constructor(title, author, pages, read) {
+                this.id = crypto.randomUUID();
+                this.title = title;
+                this.author = author;
+                this.pages = pages;
+                this.read = read;
+            }
+
+            toggleReadStatus() {
+                this.read = this.read === "read" ? "not read yet" : "read";
             }
         }
 
-        function addBookToLibrary(title, author, pages, read) {
-            const newBook = new Book(title, author, pages, read);
-            myLibrary.push(newBook);
-        }
+        class Library {
+            constructor() {
+                this.books = [];
+                this.editingIndex = null;
+                this.table = document.querySelector("table");
+                this.dialog = document.querySelector("dialog");
+                this.showButton = document.querySelector("dialog + button");
+                this.closeButton = document.querySelector("#close-button");
+                this.submitButton = document.querySelector("#submit-button");
 
-        // addBookToLibrary("The Hobbit", "J.R.R Tolkien", 295, "not read yet");
-        // addBookToLibrary("Harry Potter", "J.K. Rowling", 400, "read");
+                this.initialize();
+            }
 
-        const table = document.querySelector("table");
-        const firstRow = document.createElement("tr");
-        const firstRowData = document.createElement("td");
-        firstRowData.setAttribute("colspan", "6");
-        firstRowData.innerHTML = "There are no books to show yet...";
-        firstRowData.style.textAlign = "center";
-        firstRowData.style.fontStyle = "italic";
-        firstRowData.style.backgroundColor = "beige";
-        firstRow.appendChild(firstRowData);
-        table.appendChild(firstRow);
+            initialize() {
+                this.showButton.addEventListener("click", () => this.dialog.showModal());
+                this.closeButton.addEventListener("click", () => this.dialog.close());
+                this.submitButton.addEventListener("click", (e) => this.handleSubmit(e));
 
-        function styleButton(button) {
-            button.style.color = "white";
-            button.style.border = "none";
-            button.style.padding = "8px 20px";
-            button.style.borderRadius = "8px";
-        }
+                this.renderEmptyMessage();
+            }
 
-        let editingIndex = null;
+            renderEmptyMessage() {
+                const row = document.createElement("tr");
+                const cell = document.createElement("td");
+                cell.setAttribute("colspan", "6");
+                cell.textContent = "There are no books to show yet...";
+                Object.assign(cell.style, {
+                    textAlign: "center",
+                    fontStyle: "italic",
+                    backgroundColor: "beige",
+                });
+                row.appendChild(cell);
+                this.table.appendChild(row);
+            }
 
-        Book.prototype.toggleReadStatus = function () {
-            this.read = this.read === "read" ? "not read yet" : "read";
-        };
+            addBook(book) {
+                this.books.push(book);
+                this.refreshTable();
+            }
 
-        function displayBooks() {
-            for (let i = 0; i < myLibrary.length; i++) {
-                const book = myLibrary[i];
-                const tableRow = document.createElement("tr");
-                const id = document.createElement("td");
-                id.innerHTML = book.id;
-                tableRow.appendChild(id);
-                const title = document.createElement("td");
-                title.innerHTML = book.title;
-                tableRow.appendChild(title);
-                const author = document.createElement("td");
-                author.innerHTML = book.author;
-                tableRow.appendChild(author);
-                const pages = document.createElement("td");
-                pages.innerHTML = book.pages;
-                tableRow.appendChild(pages);
-                const read = document.createElement("td");
-                const readButton = document.createElement("button");
-                styleButton(readButton);
-                if (book.read == "read") {
-                    readButton.style.backgroundColor = "green";
+            editBook(index, updatedData) {
+                const book = this.books[index];
+                book.title = updatedData.title;
+                book.author = updatedData.author;
+                book.pages = updatedData.pages;
+                book.read = updatedData.read;
+                this.refreshTable();
+            }
+
+            deleteBook(bookId) {
+                this.books = this.books.filter(book => book.id !== bookId);
+                this.refreshTable();
+            }
+
+            handleSubmit(event) {
+                event.preventDefault();
+                const title = document.querySelector("#title").value;
+                const author = document.querySelector("#author").value;
+                const pages = document.querySelector("#pages").value;
+                const read = document.querySelector("#read").value;
+
+                if (this.editingIndex === null) {
+                    this.addBook(new Book(title, author, pages, read));
                 } else {
-                    readButton.style.backgroundColor = "grey";
+                    this.editBook(this.editingIndex, { title, author, pages, read });
+                    this.editingIndex = null;
                 }
-                readButton.innerHTML = book.read;
+
+                document.querySelector("#form").reset();
+                this.dialog.close();
+            }
+
+            refreshTable() {
+                while (this.table.childElementCount > 1) {
+                    this.table.removeChild(this.table.lastElementChild);
+                }
+                this.books.forEach((book, i) => this.renderBookRow(book, i));
+            }
+
+            renderBookRow(book, index) {
+                const row = document.createElement("tr");
+
+                row.innerHTML = `
+            <td>${book.id}</td>
+            <td>${book.title}</td>
+            <td>${book.author}</td>
+            <td>${book.pages}</td>
+        `;
+
+                // Read Button
+                const readCell = document.createElement("td");
+                const readButton = document.createElement("button");
+                readButton.textContent = book.read;
+                this.styleButton(readButton);
+                readButton.style.backgroundColor = book.read === "read" ? "green" : "grey";
                 readButton.addEventListener("click", () => {
                     book.toggleReadStatus();
                     readButton.textContent = book.read;
-                    readButton.style.backgroundColor = book.read === "read" ? "green" : "gray";
-                })
-                read.appendChild(readButton);
-                tableRow.appendChild(read);
-                const actions = document.createElement("td");
-                const editButton = document.createElement("button");
-                const deleteButton = document.createElement("button");
+                    readButton.style.backgroundColor = book.read === "read" ? "green" : "grey";
+                });
+                readCell.appendChild(readButton);
+                row.appendChild(readCell);
+
+                // Actions
+                const actionsCell = document.createElement("td");
                 const container = document.createElement("div");
                 container.style.display = "flex";
                 container.style.gap = "20px";
-                container.appendChild(editButton);
-                container.appendChild(deleteButton);
-                editButton.innerHTML = "Edit";
+
+                const editButton = document.createElement("button");
+                const deleteButton = document.createElement("button");
+
+                editButton.textContent = "Edit";
+                deleteButton.textContent = "Delete";
+
+                this.styleButton(editButton);
+                this.styleButton(deleteButton);
+
                 editButton.style.backgroundColor = "blue";
+                deleteButton.style.backgroundColor = "red";
+
                 editButton.addEventListener("click", () => {
-                    editingIndex = i;
+                    this.editingIndex = index;
                     document.querySelector("#title").value = book.title;
                     document.querySelector("#author").value = book.author;
                     document.querySelector("#pages").value = book.pages;
                     document.querySelector("#read").value = book.read;
+                    this.dialog.showModal();
+                });
 
-                    dialog.showModal();
-                })
-                deleteButton.textContent = "Delete";
-                deleteButton.dataset.bookId = book.id;
-                deleteButton.style.backgroundColor = "red";
                 deleteButton.addEventListener("click", () => {
-                    const bookId = deleteButton.dataset.bookId;
-                    myLibrary = myLibrary.filter(book => book.id !== bookId);
-                    while (table.childElementCount > 1) {
-                        table.removeChild(table.lastElementChild);
-                    }
-                    dialog.close();
-                    displayBooks();
+                    this.deleteBook(book.id);
+                });
 
-                })
-                actions.appendChild(container);
-                actionButtons = [editButton, deleteButton];
-                actionButtons.forEach(button => {
-                    styleButton(button);
-                })
-                tableRow.appendChild(actions);
-                tableRow.style.backgroundColor = "beige";
-                table.appendChild(tableRow);
+                container.appendChild(editButton);
+                container.appendChild(deleteButton);
+                actionsCell.appendChild(container);
+                row.appendChild(actionsCell);
+
+                row.style.backgroundColor = "beige";
+                this.table.appendChild(row);
+            }
+
+            styleButton(button) {
+                Object.assign(button.style, {
+                    color: "white",
+                    border: "none",
+                    padding: "8px 20px",
+                    borderRadius: "8px",
+                });
             }
         }
 
-        const dialog = document.querySelector("dialog");
-        const showButton = document.querySelector("dialog + button");
-        const closeButton = document.querySelector("#close-button");
-        const submitButton = document.querySelector("#submit-button");
-        const buttons = document.querySelectorAll("button");
-
-        showButton.addEventListener("click", () => {
-            dialog.showModal();
-        });
-
-        closeButton.addEventListener("click", () => {
-            dialog.close();
-        });
-
-        submitButton.addEventListener("click", function (event) {
-            event.preventDefault();
-            const title = document.querySelector("#title").value;
-            const author = document.querySelector("#author").value;
-            const pages = document.querySelector("#pages").value;
-            const read = document.querySelector("#read").value;
-
-            if (editingIndex == null) {
-                const newBook = new Book(title, author, pages, read);
-                myLibrary.push(newBook);
-            } else {
-                const book = myLibrary[editingIndex];
-                book.title = title;
-                book.author = author;
-                book.pages = pages;
-                book.read = read;
-            }
-            editingIndex = null;
-            document.querySelector("#form").reset();
-            while (table.childElementCount > 1) {
-                table.removeChild(table.lastElementChild);
-            }
-            dialog.close();
-            displayBooks();
-
-        })
+        // 🎮 Start the library app
+        new Library();
     </script>
+
 </body>
 
 </html>
